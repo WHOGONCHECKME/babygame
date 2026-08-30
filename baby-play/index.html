@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tap Tap Stars</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tap Tap Stars">
+<meta name="theme-color" content="#1d1b3a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  :root{
+    --bg-1:#1d1b3a; --bg-2:#2a2350;
+    --card:#3b3470; --card-hot:#4c4490; --card-line:#7e74d8;
+    --ink:#ffffff; --ink-dim:#b9b3e6;
+    --red:#ff4d57; --orange:#ff9f1a; --yellow:#ffd60a; --green:#2dd881;
+    --blue:#3da9fc; --purple:#9b5de5; --pink:#ff7ab6; --teal:#16c9b8;
+    --paper:#f7f5ef; --paper-line:#d8d3c4; --slate:#3d3a4f; --slate-dim:#6f6a85;
+    --round-font:"Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Quicksand","Comfortaa","Trebuchet MS",system-ui,sans-serif;
+    --plain-font:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    overflow:hidden; position:fixed; inset:0;
+    background:linear-gradient(160deg,var(--bg-1),var(--bg-2));
+    font-family:var(--round-font);
+    touch-action:none; user-select:none; -webkit-user-select:none;
+    overscroll-behavior:none;
+  }
+  button{ font-family:inherit; cursor:pointer; }
+  #stage{ position:absolute; inset:0; display:block; }
+
+  /* ---------- floating chrome buttons ---------- */
+  .chrome-btn{
+    position:fixed; z-index:30; width:64px; height:64px; border-radius:50%;
+    border:none; background:rgba(255,255,255,.10); color:var(--ink-dim);
+    font-size:28px; line-height:1; display:flex; align-items:center; justify-content:center;
+    backdrop-filter:blur(4px); transition:background .2s,color .2s;
+  }
+  .chrome-btn:active{ background:rgba(255,255,255,.22); color:#fff; }
+  #gateBtn{ top:calc(14px + env(safe-area-inset-top)); right:calc(14px + env(safe-area-inset-right)); }
+  #homeBtn{ bottom:calc(14px + env(safe-area-inset-bottom)); left:calc(14px + env(safe-area-inset-left)); display:none; }
+  #gateRing{ position:absolute; inset:-4px; pointer-events:none; }
+  #gateRing circle{ fill:none; stroke:#ffd60a; stroke-width:5; stroke-linecap:round;
+    stroke-dasharray:226; stroke-dashoffset:226; transform:rotate(-90deg); transform-origin:center; }
+
+  /* ---------- kid menu ---------- */
+  .screen{ position:fixed; inset:0; z-index:20; display:none; flex-direction:column;
+    align-items:center; justify-content:center; padding:24px;
+    padding-top:calc(24px + env(safe-area-inset-top));
+    padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+  .screen.show{ display:flex; }
+  #menu h1{
+    margin:0 0 6px; color:#fff; font-size:clamp(40px,7vmin,76px); letter-spacing:.5px;
+    text-shadow:0 6px 0 rgba(0,0,0,.18);
+  }
+  #menu .sub{ color:var(--ink-dim); font-size:clamp(16px,2.6vmin,24px); margin-bottom:4vmin; }
+  #menuGrid{
+    display:grid; gap:2.2vmin; width:min(960px,94vw);
+    grid-template-columns:repeat(auto-fit,minmax(min(260px,42vw),1fr));
+  }
+  .game-card{
+    border:none; border-radius:28px; padding:2.6vmin 2vmin;
+    background:var(--card); color:#fff; box-shadow:0 8px 0 rgba(0,0,0,.22);
+    display:flex; flex-direction:column; align-items:center; gap:1vmin;
+    transition:transform .08s;
+  }
+  .game-card:active{ transform:translateY(5px); box-shadow:0 3px 0 rgba(0,0,0,.22); }
+  .game-card .emoji{ font-size:clamp(44px,8vmin,84px); line-height:1;
+    filter:drop-shadow(0 4px 2px rgba(0,0,0,.25)); }
+  .game-card .label{ font-size:clamp(18px,3vmin,30px); font-weight:bold; }
+  .game-card .blurb{ font-size:clamp(12px,1.9vmin,17px); color:var(--ink-dim); font-family:var(--plain-font); }
+  #menu .foot{ margin-top:3.5vmin; color:var(--ink-dim); font-family:var(--plain-font);
+    font-size:14px; opacity:.8; text-align:center; }
+
+  /* ---------- parent gate ---------- */
+  #gate{ background:rgba(10,9,24,.78); backdrop-filter:blur(6px); z-index:40; }
+  .gate-box{
+    background:var(--paper); color:var(--slate); border-radius:22px;
+    padding:34px 30px; width:min(440px,92vw); text-align:center;
+    font-family:var(--plain-font); box-shadow:0 20px 60px rgba(0,0,0,.45);
+  }
+  .gate-box h2{ margin:0 0 6px; font-size:24px; }
+  .gate-box p{ margin:0 0 22px; color:var(--slate-dim); font-size:15px; }
+  .gate-q{ font-size:36px; font-weight:700; margin-bottom:20px; letter-spacing:1px; }
+  .gate-answers{ display:flex; gap:12px; justify-content:center; }
+  .gate-answers button{
+    flex:1; max-width:110px; font-size:28px; font-weight:700; padding:16px 0;
+    border-radius:14px; border:2px solid var(--paper-line); background:#fff; color:var(--slate);
+  }
+  .gate-answers button:active{ background:#eee; }
+  .gate-cancel{ margin-top:20px; background:none; border:none; color:var(--slate-dim);
+    font-size:15px; text-decoration:underline; }
+  .gate-shake{ animation:shake .35s; }
+  @keyframes shake{ 25%{transform:translateX(-8px)} 50%{transform:translateX(8px)} 75%{transform:translateX(-5px)} }
+
+  /* ---------- parent panel ---------- */
+  #panel{ background:rgba(10,9,24,.6); z-index:50; align-items:stretch; justify-content:flex-end;
+    padding:0; flex-direction:row; }
+  .panel-sheet{
+    width:min(520px,100vw); height:100%; background:var(--paper); color:var(--slate);
+    font-family:var(--plain-font); overflow-y:auto; -webkit-overflow-scrolling:touch;
+    touch-action:pan-y; padding:22px 22px 60px;
+    padding-top:calc(22px + env(safe-area-inset-top));
+    box-shadow:-12px 0 40px rgba(0,0,0,.35);
+  }
+  .panel-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+  .panel-head h2{ margin:0; font-size:22px; }
+  .panel-close{ border:none; background:#e9e5da; border-radius:50%; width:42px; height:42px; font-size:20px; color:var(--slate); }
+  .panel-sub{ color:var(--slate-dim); font-size:13px; margin:0 0 18px; }
+  .panel-section{ border-top:1px solid var(--paper-line); padding:16px 0 6px; }
+  .panel-section h3{ margin:0 0 12px; font-size:13px; letter-spacing:1.2px; text-transform:uppercase; color:var(--slate-dim); }
+  .game-pick{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .game-pick button{
+    border:2px solid var(--paper-line); border-radius:12px; background:#fff; color:var(--slate);
+    padding:12px 10px; font-size:15px; text-align:left; display:flex; gap:8px; align-items:center;
+  }
+  .game-pick button.current{ border-color:var(--purple); background:#f3ecfd; }
+  .setting-row{ display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:11px 0; font-size:16px; }
+  .setting-row .hint{ display:block; font-size:12px; color:var(--slate-dim); margin-top:2px; }
+  .setting-row input[type=range]{ width:170px; }
+  .switch{ position:relative; width:54px; height:32px; flex:none; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch span{ position:absolute; inset:0; border-radius:16px; background:#d3cebf; transition:.2s; }
+  .switch span::after{ content:""; position:absolute; top:3px; left:3px; width:26px; height:26px;
+    border-radius:50%; background:#fff; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .switch input:checked + span{ background:var(--green); }
+  .switch input:checked + span::after{ transform:translateX(22px); }
+  .seg{ display:flex; border:2px solid var(--paper-line); border-radius:10px; overflow:hidden; }
+  .seg button{ border:none; background:#fff; color:var(--slate); padding:8px 14px; font-size:15px; }
+  .seg button.on{ background:var(--purple); color:#fff; }
+  .faces-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+  .face-row{ display:flex; align-items:center; gap:10px; background:#fff; border:1px solid var(--paper-line);
+    border-radius:12px; padding:8px; }
+  .face-row img{ width:52px; height:52px; border-radius:50%; object-fit:cover; flex:none; }
+  .face-row input{ flex:1; min-width:0; border:1px solid var(--paper-line); border-radius:8px;
+    padding:8px 10px; font-size:15px; font-family:inherit; }
+  .face-row .del{ border:none; background:#fde8e8; color:#c0392b; border-radius:10px;
+    width:40px; height:40px; font-size:17px; flex:none; }
+  .btn-primary{ display:block; width:100%; border:none; border-radius:12px; padding:14px;
+    background:var(--purple); color:#fff; font-size:16px; font-weight:600; }
+  .btn-quiet{ display:block; width:100%; border:2px solid var(--paper-line); border-radius:12px;
+    padding:12px; background:#fff; color:var(--slate); font-size:15px; margin-top:10px; }
+  .panel-note{ font-size:12.5px; color:var(--slate-dim); line-height:1.5; margin-top:8px; }
+  @media (prefers-reduced-motion:reduce){ *{ animation:none!important; transition:none!important; } }
+</style>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<!-- corner buttons -->
+<button id="gateBtn" class="chrome-btn" aria-label="Grown-ups: press and hold">
+  <svg id="gateRing" viewBox="0 0 80 80"><circle cx="40" cy="40" r="36"/></svg>
+  &#9881;
+</button>
+<button id="homeBtn" class="chrome-btn" aria-label="Back to games">&#8962;</button>
+
+<!-- kid menu -->
+<div id="menu" class="screen show">
+  <h1>Tap Tap Stars</h1>
+  <div class="sub">Pick a game — every tap is a good tap</div>
+  <div id="menuGrid"></div>
+  <div class="foot">Grown-ups: press and hold &#9881; (top corner) for games, settings &amp; family photos.</div>
+</div>
+
+<!-- parent gate -->
+<div id="gate" class="screen">
+  <div class="gate-box" id="gateBox">
+    <h2>Grown-ups only</h2>
+    <p>Answer to open the parent area.</p>
+    <div class="gate-q" id="gateQ">3 + 4 = ?</div>
+    <div class="gate-answers" id="gateAnswers"></div>
+    <button class="gate-cancel" id="gateCancel">Back to playing</button>
+  </div>
+</div>
+
+<!-- parent panel -->
+<div id="panel" class="screen">
+  <div class="panel-sheet" id="panelSheet">
+    <div class="panel-head">
+      <h2>Parent area</h2>
+      <button class="panel-close" id="panelClose" aria-label="Close">&#10005;</button>
+    </div>
+    <p class="panel-sub">Nothing in here can be reached without the grown-up gate.</p>
+
+    <div class="panel-section">
+      <h3>Choose a game</h3>
+      <div class="game-pick" id="gamePick"></div>
+      <button class="btn-quiet" id="goMenuBtn">Show the kid menu</button>
+    </div>
+
+    <div class="panel-section">
+      <h3>Play settings</h3>
+      <div class="setting-row">
+        <div>Sounds<span class="hint">Pops, chimes and cheers</span></div>
+        <label class="switch"><input type="checkbox" id="setSound"><span></span></label>
+      </div>
+      <div class="setting-row">
+        <div>Talking voice<span class="hint">Speaks letters, colours and names</span></div>
+        <label class="switch"><input type="checkbox" id="setSpeech"><span></span></label>
+      </div>
+      <div class="setting-row">
+        <div>Volume</div>
+        <input type="range" id="setVolume" min="0" max="100" step="5">
+      </div>
+      <div class="setting-row">
+        <div>Voice speed</div>
+        <input type="range" id="setRate" min="60" max="110" step="5">
+      </div>
+      <div class="setting-row">
+        <div>Letters look like</div>
+        <div class="seg" id="setCase">
+          <button data-v="upper">ABC</button><button data-v="lower">abc</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div>Lock to current game<span class="hint">Hides the home button so little fingers can't change games</span></div>
+        <label class="switch"><input type="checkbox" id="setLock"><span></span></label>
+      </div>
+      <div class="setting-row">
+        <div>Busy screen<span class="hint">How many things can pile up before old ones float away</span></div>
+        <input type="range" id="setMax" min="15" max="80" step="5">
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Family faces</h3>
+      <div class="faces-list" id="facesList"></div>
+      <button class="btn-primary" id="addFaceBtn">Add photos</button>
+      <input type="file" id="faceFile" accept="image/*" multiple hidden>
+      <p class="panel-note">Photos stay on this device only — they are never uploaded anywhere.
+      The name you type is what the voice says in the Family Faces game.</p>
+    </div>
+
+    <div class="panel-section">
+      <h3>Keeping it toddler-proof</h3>
+      <p class="panel-note">
+        On iPad, turn on <b>Guided Access</b> (Settings &rarr; Accessibility) and triple-click the
+        side button to pin this app so the Home bar stops working. On Android use <b>app pinning</b>.
+        Add this page to the Home Screen for true full-screen play.
+      </p>
+      <button class="btn-quiet" id="fsBtn">Go full screen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   Tap Tap Stars — a no-lose tap game for ages 0–4.
+   Touch-first, multi-touch, works offline, parent-gated settings.
+   ===================================================================== */
+
+/* ---------------- tiny helpers ---------------- */
+const $ = id => document.getElementById(id);
+const rand = (a, b) => a + Math.random() * (b - a);
+const randInt = (a, b) => Math.floor(rand(a, b + 1));
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+const PALETTE = [
+  ["red", "#ff4d57"], ["orange", "#ff9f1a"], ["yellow", "#ffd60a"],
+  ["green", "#2dd881"], ["blue", "#3da9fc"], ["purple", "#9b5de5"],
+  ["pink", "#ff7ab6"], ["teal", "#16c9b8"]
+];
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const NUMBER_WORDS = ["zero","one","two","three","four","five","six","seven","eight","nine","ten"];
+const ANIMALS = [
+  ["\u{1F436}", "Dog", "Woof woof!"], ["\u{1F431}", "Cat", "Meow!"],
+  ["\u{1F986}", "Duck", "Quack quack!"], ["\u{1F42E}", "Cow", "Moo!"],
+  ["\u{1F438}", "Frog", "Ribbit!"], ["\u{1F981}", "Lion", "Roar!"],
+  ["\u{1F41F}", "Fish", "Blub blub!"], ["\u{1F98B}", "Butterfly", "Flutter flutter!"],
+  ["\u{1F418}", "Elephant", "Toot!"], ["\u{1F41D}", "Bee", "Buzz buzz!"],
+  ["\u{1F437}", "Pig", "Oink oink!"], ["\u{1F40D}", "Snake", "Sss sss!"]
+];
+
+/* ---------------- settings (saved on device) ---------------- */
+const Settings = {
+  data: {
+    sound: true, speech: true, volume: 80, rate: 85,
+    letterCase: "upper", lock: false, maxObjects: 45
+  },
+  load() {
+    try {
+      const raw = localStorage.getItem("tts-settings");
+      if (raw) Object.assign(this.data, JSON.parse(raw));
+    } catch (e) {}
+  },
+  save() {
+    try { localStorage.setItem("tts-settings", JSON.stringify(this.data)); } catch (e) {}
+  }
+};
+Settings.load();
+
+/* ---------------- audio: synthesized, no files needed ---------------- */
+const Audio2 = {
+  ctx: null, master: null,
+  unlock() {
+    if (this.ctx) { if (this.ctx.state === "suspended") this.ctx.resume(); return; }
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.connect(this.ctx.destination);
+      this.applyVolume();
+    } catch (e) { this.ctx = null; }
+  },
+  applyVolume() {
+    if (this.master) this.master.gain.value = (Settings.data.volume / 100) * 0.9;
+  },
+  blip(freq, dur, type, vol, when) {
+    if (!this.ctx || !Settings.data.sound) return;
+    const t = this.ctx.currentTime + (when || 0);
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type || "sine";
+    o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || 0.5, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.master);
+    o.start(t); o.stop(t + dur + 0.05);
+  },
+  pop()  { this.blip(pick([523, 587, 659, 784, 880]) * rand(0.98, 1.02), 0.16, "sine", 0.5); },
+  boop() { this.blip(330, 0.18, "sine", 0.35); },
+  yay() {
+    [523, 659, 784, 1046].forEach((f, i) => this.blip(f, 0.35, "triangle", 0.4, i * 0.09));
+  },
+  fanfare() {
+    [523, 659, 784, 1046, 1318].forEach((f, i) => this.blip(f, 0.5, "triangle", 0.45, i * 0.11));
+  }
+};
+
+/* ---------------- speech (Web Speech API) ---------------- */
+const Speech = {
+  voice: null, primed: false,
+  init() {
+    if (!("speechSynthesis" in window)) return;
+    const choose = () => {
+      const voices = speechSynthesis.getVoices();
+      if (!voices.length) return;
+      const lang = (navigator.language || "en").toLowerCase();
+      this.voice =
+        voices.find(v => v.lang.toLowerCase() === lang) ||
+        voices.find(v => v.lang.toLowerCase().startsWith(lang.split("-")[0])) ||
+        voices.find(v => v.lang.toLowerCase().startsWith("en")) ||
+        voices[0];
+    };
+    choose();
+    speechSynthesis.onvoiceschanged = choose;
+  },
+  say(text, interrupt) {
+    if (!Settings.data.speech || !("speechSynthesis" in window)) return;
+    try {
+      if (interrupt !== false) speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(String(text));
+      if (this.voice) u.voice = this.voice;
+      u.rate = Settings.data.rate / 100;
+      u.pitch = 1.08;
+      u.volume = Settings.data.volume / 100;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+};
+Speech.init();
+
+/* ---------------- family faces stored in IndexedDB ---------------- */
+function blobToDrawable(blob) {
+  // createImageBitmap with an <img> fallback for older iPad Safari
+  if (window.createImageBitmap) {
+    return createImageBitmap(blob).catch(() => imgFromBlob(blob));
+  }
+  return imgFromBlob(blob);
+}
+function imgFromBlob(blob) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = url;
+  });
+}
+
+const FacesDB = {
+  db: null, faces: [], // {id, name, bitmap}
+  open() {
+    return new Promise(resolve => {
+      const req = indexedDB.open("tts-faces", 1);
+      req.onupgradeneeded = () => req.result.createObjectStore("faces", { keyPath: "id", autoIncrement: true });
+      req.onsuccess = () => { this.db = req.result; resolve(); };
+      req.onerror = () => resolve();
+    });
+  },
+  async loadAll() {
+    if (!this.db) return;
+    const rows = await new Promise(res => {
+      const out = [];
+      const tx = this.db.transaction("faces").objectStore("faces").openCursor();
+      tx.onsuccess = e => {
+        const c = e.target.result;
+        if (c) { out.push(c.value); c.continue(); } else res(out);
+      };
+      tx.onerror = () => res(out);
+    });
+    this.faces = [];
+    for (const row of rows) {
+      try {
+        const bitmap = await blobToDrawable(row.blob);
+        this.faces.push({ id: row.id, name: row.name, blob: row.blob, bitmap });
+      } catch (e) {}
+    }
+  },
+  add(name, blob) {
+    return new Promise(res => {
+      if (!this.db) return res();
+      const tx = this.db.transaction("faces", "readwrite");
+      tx.objectStore("faces").add({ name, blob });
+      tx.oncomplete = () => res();
+      tx.onerror = () => res();
+    });
+  },
+  rename(id, name) {
+    if (!this.db) return;
+    const store = this.db.transaction("faces", "readwrite").objectStore("faces");
+    const req = store.get(id);
+    req.onsuccess = () => {
+      const row = req.result;
+      if (row) { row.name = name; store.put(row); }
+    };
+    const f = this.faces.find(x => x.id === id);
+    if (f) f.name = name;
+  },
+  remove(id) {
+    return new Promise(res => {
+      if (!this.db) return res();
+      const tx = this.db.transaction("faces", "readwrite");
+      tx.objectStore("faces").delete(id);
+      tx.oncomplete = () => res();
+      tx.onerror = () => res();
+    });
+  }
+};
+
+/* ---------------- canvas + render world ---------------- */
+const canvas = $("stage");
+const ctx = canvas.getContext("2d");
+let W = 0, H = 0, DPR = 1;
+
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.round(W * DPR);
+  canvas.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  Stars.build();
+  if (Game.mode && Game.mode.onResize) Game.mode.onResize();
+}
+window.addEventListener("resize", resize);
+window.addEventListener("orientationchange", () => setTimeout(resize, 250));
+
+/* soft drifting starfield background */
+const Stars = {
+  list: [],
+  build() {
+    this.list = [];
+    const n = Math.round((W * H) / 16000);
+    for (let i = 0; i < n; i++) {
+      this.list.push({ x: rand(0, W), y: rand(0, H), r: rand(0.8, 2.4),
+        tw: rand(0, Math.PI * 2), sp: rand(0.4, 1.4) });
+    }
+  },
+  draw(t) {
+    ctx.fillStyle = "#ffffff";
+    for (const s of this.list) {
+      const a = 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(t * s.sp + s.tw));
+      ctx.globalAlpha = a;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+};
+
+/* ---------------- entities ---------------- */
+function easeOutBack(p) { const c = 1.70158; const q = p - 1; return 1 + (c + 1) * q * q * q + c * q * q; }
+
+class Entity {
+  constructor(x, y) {
+    this.x = x; this.y = y; this.age = 0; this.life = 14;
+    this.popIn = 0; this.dead = false;
+    this.vx = rand(-12, 12); this.vy = rand(-16, -4);
+    this.wob = rand(0, Math.PI * 2);
+  }
+  update(dt) {
+    this.age += dt;
+    this.popIn = Math.min(1, this.popIn + dt * 3.2);
+    this.x += (this.vx + Math.sin(this.age * 1.7 + this.wob) * 9) * dt;
+    this.y += this.vy * dt;
+    if (this.age > this.life) this.dead = true;
+  }
+  alpha() { return this.age > this.life - 1.2 ? clamp((this.life - this.age) / 1.2, 0, 1) : 1; }
+  scale() { return easeOutBack(this.popIn); }
+}
+
+class Ball extends Entity {
+  constructor(x, y, r, colorName, colorHex, letter) {
+    super(x, y);
+    this.r = r; this.colorName = colorName; this.colorHex = colorHex; this.letter = letter;
+  }
+  draw() {
+    const s = this.scale(), r = this.r * s;
+    if (r <= 1) return;
+    ctx.globalAlpha = this.alpha();
+    ctx.fillStyle = this.colorHex;
+    ctx.beginPath(); ctx.arc(this.x, this.y, r, 0, 7); ctx.fill();
+    // glossy highlight
+    ctx.fillStyle = "rgba(255,255,255,.35)";
+    ctx.beginPath(); ctx.ellipse(this.x - r * 0.32, this.y - r * 0.38, r * 0.30, r * 0.20, -0.6, 0, 7); ctx.fill();
+    if (this.letter) {
+      ctx.fillStyle = "rgba(0,0,0,.55)";
+      ctx.font = `bold ${Math.round(r * 1.0)}px ${FONT}`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(this.letter, this.x, this.y + r * 0.06);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+class Splash extends Entity {
+  constructor(x, y, colorHex) {
+    super(x, y);
+    this.colorHex = colorHex; this.r = rand(Math.min(W, H) * 0.14, Math.min(W, H) * 0.22);
+    this.blobs = [];
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2 + rand(-0.3, 0.3);
+      this.blobs.push({ a, d: rand(0.55, 0.95), r: rand(0.25, 0.45) });
+    }
+    this.vx = 0; this.vy = -6;
+  }
+  draw() {
+    const s = this.scale(), r = this.r * s;
+    ctx.globalAlpha = this.alpha() * 0.92;
+    ctx.fillStyle = this.colorHex;
+    ctx.beginPath(); ctx.arc(this.x, this.y, r * 0.8, 0, 7); ctx.fill();
+    for (const b of this.blobs) {
+      ctx.beginPath();
+      ctx.arc(this.x + Math.cos(b.a) * r * b.d, this.y + Math.sin(b.a) * r * b.d, r * b.r, 0, 7);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+class EmojiSprite extends Entity {
+  constructor(x, y, emoji, size) {
+    super(x, y);
+    this.emoji = emoji; this.size = size;
+  }
+  draw() {
+    const s = this.scale();
+    ctx.globalAlpha = this.alpha();
+    ctx.font = `${Math.round(this.size * s)}px ${FONT}`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(this.emoji, this.x, this.y);
+    ctx.globalAlpha = 1;
+  }
+}
+
+class FaceSprite extends Entity {
+  constructor(x, y, bitmap, name, size) {
+    super(x, y);
+    this.bitmap = bitmap; this.name = name; this.size = size; this.life = 10;
+  }
+  draw() {
+    const s = this.scale(), d = this.size * s;
+    if (d <= 2) return;
+    ctx.globalAlpha = this.alpha();
+    ctx.save();
+    ctx.beginPath(); ctx.arc(this.x, this.y, d / 2, 0, 7); ctx.clip();
+    const bw = this.bitmap.width, bh = this.bitmap.height;
+    const sc = d / Math.min(bw, bh);
+    ctx.drawImage(this.bitmap, this.x - bw * sc / 2, this.y - bh * sc / 2, bw * sc, bh * sc);
+    ctx.restore();
+    ctx.lineWidth = Math.max(3, d * 0.03);
+    ctx.strokeStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(this.x, this.y, d / 2, 0, 7); ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `bold ${Math.round(clamp(d * 0.16, 18, 34))}px ${FONT}`;
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    ctx.fillText(this.name, this.x, this.y + d / 2 + 8);
+    ctx.globalAlpha = 1;
+  }
+}
+
+class Confetti {
+  constructor(x, y) {
+    this.x = x; this.y = y;
+    const a = rand(0, Math.PI * 2), sp = rand(120, 420);
+    this.vx = Math.cos(a) * sp; this.vy = Math.sin(a) * sp - 140;
+    this.r = rand(4, 10); this.color = pick(PALETTE)[1];
+    this.age = 0; this.life = rand(0.8, 1.6); this.dead = false;
+    this.spin = rand(-8, 8); this.rot = rand(0, 7);
+  }
+  update(dt) {
+    this.age += dt;
+    this.vy += 560 * dt;
+    this.x += this.vx * dt; this.y += this.vy * dt; this.rot += this.spin * dt;
+    if (this.age > this.life || this.y > H + 30) this.dead = true;
+  }
+  draw() {
+    ctx.globalAlpha = clamp(1 - this.age / this.life, 0, 1);
+    ctx.fillStyle = this.color;
+    ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rot);
+    ctx.fillRect(-this.r, -this.r * 0.6, this.r * 2, this.r * 1.2);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+}
+
+class Ripple {
+  constructor(x, y) { this.x = x; this.y = y; this.age = 0; this.dead = false; }
+  update(dt) { this.age += dt; if (this.age > 0.5) this.dead = true; }
+  draw() {
+    const p = this.age / 0.5;
+    ctx.globalAlpha = (1 - p) * 0.5;
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(this.x, this.y, 16 + p * 70, 0, 7); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+const FONT = '"Arial Rounded MT Bold","Hiragino Maru Gothic ProN","Quicksand","Trebuchet MS",system-ui,sans-serif';
+
+/* ---------------- the game core ---------------- */
+const Game = {
+  mode: null, modeId: null,
+  objects: [], particles: [],
+  tapStreak: 0,
+  caseLetter(ch) { return Settings.data.letterCase === "lower" ? ch.toLowerCase() : ch.toUpperCase(); },
+
+  addObject(o) {
+    this.objects.push(o);
+    const max = Settings.data.maxObjects;
+    if (this.objects.length > max) this.objects.splice(0, this.objects.length - max);
+  },
+  burst(x, y, n) {
+    for (let i = 0; i < (n || 26); i++) this.particles.push(new Confetti(x, y));
+    if (this.particles.length > 400) this.particles.splice(0, this.particles.length - 400);
+  },
+  randPos(margin) {
+    const m = Math.min(margin, W / 2 - 4, H / 2 - 4);
+    return [rand(m, W - m), rand(m + 60, H - m)];
+  },
+  /* every ~12 taps, an extra little celebration keeps it magical */
+  rewardTick(x, y) {
+    this.tapStreak++;
+    if (this.tapStreak % 12 === 0) {
+      this.burst(x, y, 34);
+      Audio2.yay();
+    }
+  },
+
+  start(modeId) {
+    this.objects = []; this.particles = []; this.tapStreak = 0;
+    this.modeId = modeId;
+    this.mode = MODES[modeId];
+    hide($("menu"));
+    $("homeBtn").style.display = Settings.data.lock ? "none" : "flex";
+    if (this.mode.enter) this.mode.enter();
+  },
+  goMenu() {
+    this.mode = null; this.modeId = null;
+    this.objects = []; this.particles = [];
+    show($("menu"));
+    $("homeBtn").style.display = "none";
+    try { speechSynthesis.cancel(); } catch (e) {}
+  },
+
+  pointer(x, y) {
+    if (!this.mode) return;
+    this.particles.push(new Ripple(x, y));
+    this.mode.tap(x, y);
+  },
+  key(ch, raw) {
+    if (!this.mode) return;
+    if (this.mode.key) this.mode.key(ch, raw);
+    else this.mode.tap(...this.randPos(120));
+  },
+
+  update(dt) {
+    for (const o of this.objects) o.update(dt);
+    this.objects = this.objects.filter(o => !o.dead);
+    for (const p of this.particles) p.update(dt);
+    this.particles = this.particles.filter(p => !p.dead);
+    if (this.mode && this.mode.update) this.mode.update(dt);
+  },
+  draw(t) {
+    const g = ctx.createLinearGradient(0, 0, W * 0.4, H);
+    g.addColorStop(0, "#1d1b3a"); g.addColorStop(1, "#2a2350");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    Stars.draw(t);
+    if (!this.mode) return;
+    if (this.mode.drawUnder) this.mode.drawUnder();
+    for (const o of this.objects) o.draw();
+    for (const p of this.particles) p.draw();
+    if (this.mode.drawOver) this.mode.drawOver();
+  }
+};
+
+function show(el) { el.classList.add("show"); }
+function hide(el) { el.classList.remove("show"); }
+
+/* ---------------- game modes ---------------- */
+function spawnBall(x, y, opts) {
+  opts = opts || {};
+  const [cName, cHex] = pick(PALETTE);
+  const base = Math.min(W, H);
+  const r = opts.big ? rand(base * 0.13, base * 0.19) : rand(base * 0.07, base * 0.11);
+  const letter = opts.letter !== undefined ? opts.letter : "";
+  Game.addObject(new Ball(x, y, r, cName, cHex, letter));
+  Audio2.pop();
+  return cName;
+}
+
+const MODES = {
+
+  /* 1 — Free Play: anything makes something. Tap speaks colour, key speaks letter. */
+  free: {
+    label: "Free Play", emoji: "\u{1FA84}", blurb: "Tap anywhere — pop!",
+    enter() { Speech.say("Free play! Tap anywhere!"); },
+    tap(x, y) {
+      const letter = Game.caseLetter(pick(LETTERS));
+      const colour = spawnBall(x, y, { letter });
+      Speech.say(colour);
+      Game.rewardTick(x, y);
+    },
+    key(ch) {
+      const letter = ch || pick(LETTERS); // space bar and arrow mashing still pops a ball
+      const [x, y] = Game.randPos(140);
+      spawnBall(x, y, { letter: Game.caseLetter(letter) });
+      Speech.say(letter);
+      Game.rewardTick(x, y);
+    }
+  },
+
+  /* 2 — Colour Splash */
+  colours: {
+    label: "Colour Splash", emoji: "\u{1F3A8}", blurb: "Big splashes say their colour",
+    enter() { Speech.say("Colour splash!"); },
+    tap(x, y) {
+      const [cName, cHex] = pick(PALETTE);
+      Game.addObject(new Splash(x, y, cHex));
+      Audio2.pop();
+      Speech.say(cName);
+      Game.rewardTick(x, y);
+    }
+  },
+
+  /* 3 — Letter Hunt: tap the bubble with the big letter. Can never lose. */
+  letters: {
+    label: "Letter Hunt", emoji: "\u{1F520}", blurb: "Find the letter bubble",
+    target: "", bubbles: [], score: 0, wobble: 0,
+    enter() { this.score = 0; this.newRound(true); },
+    onResize() { this.layout(); },
+    newRound(first) {
+      this.target = pick(LETTERS);
+      const others = new Set([this.target]);
+      while (others.size < 4) others.add(pick(LETTERS));
+      const list = [...others].sort(() => Math.random() - 0.5);
+      this.letters = list;
+      this.layout();
+      Speech.say((first ? "Letter hunt! " : "") + "Find the letter " + this.target, true);
+    },
+    layout() {
+      const r = clamp(Math.min(W, H) * 0.11, 54, 130);
+      const n = (this.letters || []).length;
+      this.bubbles = (this.letters || []).map((ch, i) => {
+        const x = W / 2 + (i - (n - 1) / 2) * (r * 2.45);
+        const y = H * 0.68 + (i % 2 === 0 ? -r * 0.45 : r * 0.45);
+        return { ch, x, y, r, hue: pick(PALETTE)[1], shake: 0 };
+      });
+    },
+    tap(x, y) {
+      for (const b of this.bubbles) {
+        const dx = x - b.x, dy = y - b.y;
+        if (dx * dx + dy * dy <= (b.r * 1.25) * (b.r * 1.25)) {
+          if (b.ch === this.target) {
+            this.score++;
+            Audio2.yay();
+            Game.burst(b.x, b.y, 30);
+            Speech.say("Yes! " + this.target + "!");
+            setTimeout(() => { if (Game.modeId === "letters") this.newRound(false); }, 900);
+          } else {
+            b.shake = 0.4;
+            Audio2.boop();
+            Speech.say("Find the letter " + this.target);
+          }
+          return;
+        }
+      }
+      // tapping anywhere else just repeats the target — gentle, never wrong
+      Audio2.boop();
+      Speech.say(this.target);
+    },
+    key(ch) {
+      if (!ch || !/[A-Z]/.test(ch)) return;
+      if (ch === this.target) {
+        this.score++;
+        Audio2.yay(); Game.burst(W / 2, H / 2, 30);
+        Speech.say("Yes! " + this.target + "!");
+        setTimeout(() => { if (Game.modeId === "letters") this.newRound(false); }, 900);
+      } else { Audio2.boop(); Speech.say("Find the letter " + this.target); }
+    },
+    update(dt) { for (const b of this.bubbles) b.shake = Math.max(0, b.shake - dt); },
+    drawOver() {
+      // giant ghost letter
+      ctx.globalAlpha = 0.16;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `bold ${Math.round(Math.min(W, H) * 0.5)}px ${FONT}`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(Game.caseLetter(this.target), W / 2, H * 0.32);
+      ctx.globalAlpha = 1;
+      // bubbles
+      for (const b of this.bubbles) {
+        const ox = b.shake > 0 ? Math.sin(b.shake * 60) * 8 : 0;
+        ctx.fillStyle = b.hue;
+        ctx.beginPath(); ctx.arc(b.x + ox, b.y, b.r, 0, 7); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,.3)";
+        ctx.beginPath(); ctx.ellipse(b.x + ox - b.r * 0.3, b.y - b.r * 0.35, b.r * 0.28, b.r * 0.18, -0.6, 0, 7); ctx.fill();
+        ctx.fillStyle = "rgba(0,0,0,.55)";
+        ctx.font = `bold ${Math.round(b.r * 1.05)}px ${FONT}`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(Game.caseLetter(b.ch), b.x + ox, b.y + b.r * 0.05);
+      }
+      // star score
+      ctx.font = `${Math.round(clamp(Math.min(W, H) * 0.04, 22, 36))}px ${FONT}`;
+      ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+      ctx.fillText("\u2B50".repeat(Math.min(this.score, 10)) + (this.score > 10 ? " +" + (this.score - 10) : ""), 18, H - 16);
+    }
+  },
+
+  /* 4 — Counting: each tap counts up to ten, then a big hooray. */
+  numbers: {
+    label: "Counting", emoji: "\u{1F522}", blurb: "Count to ten together",
+    count: 0,
+    enter() { this.count = 0; Speech.say("Let's count! Tap tap tap!"); },
+    tap(x, y) {
+      this.count++;
+      spawnBall(x, y, { letter: String(this.count) });
+      if (this.count >= 10) {
+        Speech.say("Ten! Hooray! Let's count again!");
+        Audio2.fanfare();
+        Game.burst(W / 2, H / 2, 50);
+        this.count = 0;
+      } else {
+        Speech.say(NUMBER_WORDS[this.count]);
+      }
+    },
+    drawOver() {
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `bold ${Math.round(Math.min(W, H) * 0.55)}px ${FONT}`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(this.count === 0 ? 10 : this.count), W / 2, H / 2);
+      ctx.globalAlpha = 1;
+    }
+  },
+
+  /* 5 — Animal Friends */
+  animals: {
+    label: "Animal Friends", emoji: "\u{1F981}", blurb: "Who says woof?",
+    enter() { Speech.say("Animal friends!"); },
+    tap(x, y) {
+      const [emoji, name, sound] = pick(ANIMALS);
+      Game.addObject(new EmojiSprite(x, y, emoji, clamp(Math.min(W, H) * 0.22, 90, 220)));
+      Audio2.pop();
+      Speech.say(name + "! " + sound);
+      Game.rewardTick(x, y);
+    }
+  },
+
+  /* 6 — Family Faces */
+  faces: {
+    label: "Family Faces", emoji: "\u{1F46A}", blurb: "Pop up the people you love",
+    enter() {
+      if (FacesDB.faces.length) Speech.say("Family faces!");
+      else Speech.say("Ask a grown up to add photos!");
+    },
+    tap(x, y) {
+      if (!FacesDB.faces.length) { Audio2.boop(); return; }
+      const f = pick(FacesDB.faces);
+      Game.addObject(new FaceSprite(x, y, f.bitmap, f.name,
+        clamp(Math.min(W, H) * 0.34, 160, 340)));
+      Audio2.pop();
+      Speech.say(f.name);
+      Game.rewardTick(x, y);
+    },
+    drawOver() {
+      if (FacesDB.faces.length) return;
+      ctx.fillStyle = "rgba(255,255,255,.85)";
+      ctx.font = `bold ${Math.round(clamp(Math.min(W, H) * 0.045, 20, 38))}px ${FONT}`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("No photos yet!", W / 2, H / 2 - 30);
+      ctx.font = `${Math.round(clamp(Math.min(W, H) * 0.028, 15, 24))}px ${FONT}`;
+      ctx.fillStyle = "rgba(255,255,255,.6)";
+      ctx.fillText("Grown-ups: hold \u2699 and add family photos", W / 2, H / 2 + 26);
+    }
+  }
+};
+
+/* ---------------- kid menu build ---------------- */
+function buildMenu() {
+  const grid = $("menuGrid");
+  grid.innerHTML = "";
+  for (const id of Object.keys(MODES)) {
+    const m = MODES[id];
+    const b = document.createElement("button");
+    b.className = "game-card";
+    b.innerHTML = `<span class="emoji">${m.emoji}</span><span class="label">${m.label}</span><span class="blurb">${m.blurb}</span>`;
+    b.addEventListener("pointerdown", e => {
+      e.preventDefault();
+      Audio2.unlock(); Audio2.pop();
+      Game.start(id);
+    });
+    grid.appendChild(b);
+  }
+}
+
+/* ---------------- parent gate ---------------- */
+const Gate = {
+  holdTimer: null, holdStart: 0, answer: 0, raf: null,
+  init() {
+    const btn = $("gateBtn");
+    const ringCircle = $("gateRing").querySelector("circle");
+    const HOLD_MS = 2500;
+    const begin = e => {
+      e.preventDefault();
+      Audio2.unlock();
+      this.holdStart = performance.now();
+      const tick = () => {
+        const p = clamp((performance.now() - this.holdStart) / HOLD_MS, 0, 1);
+        ringCircle.style.strokeDashoffset = String(226 * (1 - p));
+        if (p >= 1) { this.openQuiz(); end(); return; }
+        this.raf = requestAnimationFrame(tick);
+      };
+      this.raf = requestAnimationFrame(tick);
+    };
+    const end = () => {
+      if (this.raf) cancelAnimationFrame(this.raf);
+      this.raf = null;
+      ringCircle.style.strokeDashoffset = "226";
+    };
+    btn.addEventListener("pointerdown", begin);
+    btn.addEventListener("pointerup", end);
+    btn.addEventListener("pointercancel", end);
+    btn.addEventListener("pointerleave", end);
+    $("gateCancel").addEventListener("click", () => hide($("gate")));
+  },
+  openQuiz() {
+    const a = randInt(2, 8), b = randInt(3, 9);
+    this.answer = a + b;
+    $("gateQ").textContent = `${a} + ${b} = ?`;
+    const wrap = $("gateAnswers");
+    wrap.innerHTML = "";
+    const opts = new Set([this.answer]);
+    while (opts.size < 3) {
+      const v = this.answer + randInt(-4, 4);
+      if (v > 1 && v !== this.answer) opts.add(v);
+    }
+    [...opts].sort(() => Math.random() - 0.5).forEach(v => {
+      const btn = document.createElement("button");
+      btn.textContent = v;
+      btn.addEventListener("click", () => {
+        if (v === this.answer) { hide($("gate")); Panel.open(); }
+        else {
+          $("gateBox").classList.remove("gate-shake");
+          void $("gateBox").offsetWidth;
+          $("gateBox").classList.add("gate-shake");
+          this.openQuiz();
+        }
+      });
+      wrap.appendChild(btn);
+    });
+    show($("gate"));
+  }
+};
+
+/* ---------------- parent panel ---------------- */
+const Panel = {
+  init() {
+    $("panelClose").addEventListener("click", () => this.close());
+    $("panel").addEventListener("pointerdown", e => { if (e.target === $("panel")) this.close(); });
+    $("goMenuBtn").addEventListener("click", () => { this.close(); Game.goMenu(); });
+
+    // settings wiring
+    const d = Settings.data;
+    $("setSound").checked = d.sound;
+    $("setSpeech").checked = d.speech;
+    $("setVolume").value = d.volume;
+    $("setRate").value = d.rate;
+    $("setLock").checked = d.lock;
+    $("setMax").value = d.maxObjects;
+    this.paintCase();
+
+    $("setSound").addEventListener("change", e => { d.sound = e.target.checked; Settings.save(); });
+    $("setSpeech").addEventListener("change", e => {
+      d.speech = e.target.checked; Settings.save();
+      if (!d.speech) { try { speechSynthesis.cancel(); } catch (err) {} }
+    });
+    $("setVolume").addEventListener("input", e => { d.volume = +e.target.value; Audio2.applyVolume(); Settings.save(); });
+    $("setVolume").addEventListener("change", () => { Audio2.pop(); Speech.say("Hello!"); });
+    $("setRate").addEventListener("change", e => { d.rate = +e.target.value; Settings.save(); Speech.say("Hello there!"); });
+    $("setLock").addEventListener("change", e => {
+      d.lock = e.target.checked; Settings.save();
+      $("homeBtn").style.display = (d.lock || !Game.mode) ? "none" : "flex";
+    });
+    $("setMax").addEventListener("change", e => { d.maxObjects = +e.target.value; Settings.save(); });
+    $("setCase").addEventListener("click", e => {
+      const v = e.target.dataset && e.target.dataset.v;
+      if (!v) return;
+      d.letterCase = v; Settings.save(); this.paintCase();
+    });
+
+    $("addFaceBtn").addEventListener("click", () => $("faceFile").click());
+    $("faceFile").addEventListener("change", async e => {
+      for (const file of e.target.files) {
+        const name = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim() || "Someone special";
+        const blob = await shrinkImage(file);
+        await FacesDB.add(titleCase(name), blob);
+      }
+      e.target.value = "";
+      await FacesDB.loadAll();
+      this.paintFaces();
+    });
+
+    $("fsBtn").addEventListener("click", () => {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    });
+  },
+  open() {
+    this.paintGamePick();
+    this.paintFaces();
+    show($("panel"));
+  },
+  close() { hide($("panel")); },
+  paintCase() {
+    for (const b of $("setCase").querySelectorAll("button"))
+      b.classList.toggle("on", b.dataset.v === Settings.data.letterCase);
+  },
+  paintGamePick() {
+    const wrap = $("gamePick");
+    wrap.innerHTML = "";
+    for (const id of Object.keys(MODES)) {
+      const m = MODES[id];
+      const b = document.createElement("button");
+      b.innerHTML = `<span>${m.emoji}</span><span>${m.label}</span>`;
+      if (Game.modeId === id) b.classList.add("current");
+      b.addEventListener("click", () => { this.close(); Game.start(id); });
+      wrap.appendChild(b);
+    }
+  },
+  paintFaces() {
+    const wrap = $("facesList");
+    wrap.innerHTML = "";
+    if (!FacesDB.faces.length) {
+      const p = document.createElement("p");
+      p.className = "panel-note";
+      p.textContent = "No photos yet. Add a few and the Family Faces game will say their names out loud.";
+      wrap.appendChild(p);
+      return;
+    }
+    for (const f of FacesDB.faces) {
+      const row = document.createElement("div");
+      row.className = "face-row";
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(f.blob);
+      const input = document.createElement("input");
+      input.value = f.name;
+      input.setAttribute("aria-label", "Name spoken for this photo");
+      input.addEventListener("change", () => FacesDB.rename(f.id, input.value.trim() || "Someone special"));
+      const del = document.createElement("button");
+      del.className = "del"; del.textContent = "\u{1F5D1}";
+      del.setAttribute("aria-label", "Remove photo");
+      del.addEventListener("click", async () => { await FacesDB.remove(f.id); await FacesDB.loadAll(); this.paintFaces(); });
+      row.append(img, input, del);
+      wrap.appendChild(row);
+    }
+  }
+};
+
+function titleCase(s) { return s.replace(/\b\w/g, c => c.toUpperCase()); }
+
+/* downscale photos so the database stays small and drawing stays fast */
+async function shrinkImage(file) {
+  try {
+    const bmp = await blobToDrawable(file);
+    const max = 600;
+    const sc = Math.min(1, max / Math.min(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * sc); c.height = Math.round(bmp.height * sc);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise(res => c.toBlob(b => res(b || file), "image/jpeg", 0.85));
+  } catch (e) { return file; }
+}
+
+/* ---------------- input ---------------- */
+function overlaysOpen() {
+  return $("gate").classList.contains("show") || $("panel").classList.contains("show")
+    || $("menu").classList.contains("show");
+}
+
+canvas.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  Audio2.unlock();
+  if (overlaysOpen()) return;
+  Game.pointer(e.clientX, e.clientY);
+});
+
+window.addEventListener("keydown", e => {
+  if ($("panel").classList.contains("show") || $("gate").classList.contains("show")) return;
+  // keys never navigate anywhere — they are toys. (No Esc-to-quit: that's the gate's job.)
+  if (e.key === "Tab" || e.key === "F11") return;
+  e.preventDefault();
+  Audio2.unlock();
+  if (overlaysOpen()) return;
+  const ch = e.key.length === 1 && /[a-z0-9]/i.test(e.key) ? e.key.toUpperCase() : "";
+  Game.key(ch, e.key);
+});
+
+$("homeBtn").addEventListener("pointerdown", e => {
+  e.preventDefault();
+  Audio2.unlock(); Audio2.boop();
+  Game.goMenu();
+});
+
+/* swallow everything that could break a toddler out of the app */
+for (const evt of ["contextmenu", "dblclick", "gesturestart", "gesturechange"]) {
+  window.addEventListener(evt, e => e.preventDefault(), { passive: false });
+}
+window.addEventListener("touchmove", e => {
+  // the parent panel is the only place scrolling is allowed
+  if (!(e.target.closest && e.target.closest("#panelSheet"))) e.preventDefault();
+}, { passive: false });
+
+/* keep the screen awake while playing */
+let wakeLock = null;
+async function grabWakeLock() {
+  try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen"); }
+  catch (e) {}
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") grabWakeLock();
+  else { try { speechSynthesis.cancel(); } catch (e) {} }
+});
+
+/* ---------------- main loop ---------------- */
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  Game.update(dt);
+  Game.draw(now / 1000);
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- boot ---------------- */
+(async function boot() {
+  resize();
+  buildMenu();
+  Gate.init();
+  Panel.init();
+  await FacesDB.open();
+  await FacesDB.loadAll();
+  grabWakeLock();
+  requestAnimationFrame(frame);
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>

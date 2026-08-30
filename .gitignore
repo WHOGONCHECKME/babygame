@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# Node
+node_modules/
+npm-debug.log*
+
+
+# Xcode
+DerivedData/
+build/
+
+# Xcode user settings
+*.xcuserstate
+xcuserdata/
+
+# Swift Package Manager
+.build/
+
+# Logs
+*.log
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+.env.*
+
+# Temporary files
+*.tmp
